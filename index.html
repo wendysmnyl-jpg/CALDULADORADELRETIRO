@@ -178,27 +178,33 @@
     });
 
     document.getElementById("btnCalc").addEventListener("click", function() {
-      const edadActual = parseFloat(document.getElementById("edadActual").value);
-      const edadRetiro = parseFloat(document.getElementById("edadRetiro").value);
-      const pension    = parseFloat(document.getElementById("pension").value);
+      const edadActual = parseFloat(document.getElementById("edadActual").value) || 0;
+      const edadRetiro = parseFloat(document.getElementById("edadRetiro").value) || 0;
+      const pension    = parseFloat(document.getElementById("pension").value)    || 0;
       const inflacion  = parseFloat(document.getElementById("inflacion").value) / 100;
       const vida       = parseFloat(document.getElementById("vida").value);
 
       if (edadRetiro <= edadActual) { alert("La edad de retiro debe ser mayor que tu edad actual."); return; }
+      if (edadRetiro >= vida)       { alert("La esperanza de vida debe ser mayor que la edad de retiro."); return; }
       if (pension <= 0)             { alert("Ingresa una pensión mensual válida."); return; }
 
       const aniosParaRetiro = edadRetiro - edadActual;
       const aniosEnRetiro   = vida - edadRetiro;
-      if (aniosEnRetiro <= 0) { alert("La esperanza de vida debe ser mayor que la edad de retiro."); return; }
 
-      const pensionFutura  = pension * Math.pow(1 + inflacion, aniosParaRetiro);
-      const totalNecesario = pensionFutura * aniosEnRetiro * 12;
+      // Pensión ajustada a valor futuro
+      const pensionFutura = pension * Math.pow(1 + inflacion, aniosParaRetiro);
 
-      const calcAhorro = (tasa) => {
-        if (tasa === 0) return totalNecesario / (aniosParaRetiro * 12);
-        const r = tasa / 12;
-        const n = aniosParaRetiro * 12;
-        return totalNecesario * r / (Math.pow(1 + r, n) - 1);
+      // Monto total: valor presente de anualidad con inflación mensual
+      const r = inflacion / 12;
+      const n = aniosEnRetiro * 12;
+      const totalNecesario = pensionFutura * (1 - Math.pow(1 + r, -n)) / r;
+
+      // Ahorro mensual requerido para acumular totalNecesario en aniosParaRetiro
+      const meses = aniosParaRetiro * 12;
+      const calcAhorro = (tasaAnual) => {
+        if (tasaAnual === 0) return totalNecesario / meses;
+        const rm = tasaAnual / 12;
+        return totalNecesario * rm / (Math.pow(1 + rm, meses) - 1);
       };
 
       document.getElementById("resAnios").textContent         = aniosParaRetiro;
@@ -213,6 +219,8 @@
       results.classList.add("visible");
       results.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+
+    document.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("btnCalc").click(); });
   </script>
 
 </body>
